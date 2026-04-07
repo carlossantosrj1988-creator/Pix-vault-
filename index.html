@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixVault</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Courier New', monospace;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #111;
+    border-bottom: 1px solid #222;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  header h1 { font-size: 18px; color: #00ff88; letter-spacing: 2px; }
+  header span { font-size: 11px; color: #555; }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #00ff88;
+    animation: pulse 2s infinite;
+    margin-left: auto;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  nav {
+    display: flex;
+    background: #111;
+    border-bottom: 1px solid #222;
+  }
+
+  nav button {
+    flex: 1;
+    padding: 12px;
+    background: none;
+    border: none;
+    color: #555;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+
+  nav button.active {
+    color: #00ff88;
+    border-bottom-color: #00ff88;
+  }
+
+  .screen { display: none; padding: 16px; }
+  .screen.active { display: block; }
+
+  .card {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 4px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .card-title {
+    font-size: 11px;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .balance {
+    font-size: 28px;
+    color: #00ff88;
+    font-weight: bold;
+  }
+
+  .balance-sub {
+    font-size: 13px;
+    color: #777;
+    margin-top: 4px;
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .row .card { flex: 1; margin-bottom: 0; }
+
+  btn, .btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+  }
+
+  .btn:hover { border-color: #00ff88; color: #00ff88; }
+  .btn.green { border-color: #00ff88; color: #00ff88; }
+  .btn.green:hover { background: #00ff8820; }
+  .btn.red { border-color: #ff4444; color: #ff4444; }
+  .btn.red:hover { background: #ff444420; }
+  .btn.yellow { border-color: #ffaa00; color: #ffaa00; }
+  .btn.yellow:hover { background: #ffaa0020; }
+
+  .input-group { margin-bottom: 10px; }
+  .input-group label { font-size: 11px; color: #555; display: block; margin-bottom: 4px; }
+  .input-group input, .input-group select {
+    width: 100%;
+    padding: 10px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    color: #e0e0e0;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+  }
+  .input-group input:focus, .input-group select:focus {
+    outline: none;
+    border-color: #00ff88;
+  }
+
+  .log {
+    background: #0d0d0d;
+    border: 1px solid #222;
+    border-radius: 4px;
+    padding: 12px;
+    font-size: 11px;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  .log-item {
+    padding: 4px 0;
+    border-bottom: 1px solid #1a1a1a;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .log-item:last-child { border-bottom: none; }
+
+  .log-time { color: #444; min-width: 50px; }
+  .log-status { min-width: 16px; }
+  .log-text { color: #aaa; flex: 1; }
+  .log-val { color: #00ff88; min-width: 80px; text-align: right; }
+  .log-val.red { color: #ff4444; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 10px;
+    margin-right: 4px;
+  }
+  .tag.green { background: #00ff8820; color: #00ff88; border: 1px solid #00ff8840; }
+  .tag.red { background: #ff444420; color: #ff4444; border: 1px solid #ff444440; }
+  .tag.yellow { background: #ffaa0020; color: #ffaa00; border: 1px solid #ffaa0040; }
+  .tag.blue { background: #4488ff20; color: #4488ff; border: 1px solid #4488ff40; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #1a1a1a;
+    margin: 12px 0;
+  }
+
+  .section-title {
+    font-size: 11px;
+    color: #444;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  /* Bot status */
+  .bot-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: #0d0d0d;
+    border: 1px solid #222;
+    border-radius: 4px;
+    margin-bottom: 12px;
+  }
+  .bot-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #555;
+  }
+  .bot-dot.on { background: #00ff88; animation: pulse 1.5s infinite; }
+  .bot-label { font-size: 13px; }
+  .bot-label span { color: #555; font-size: 11px; display: block; margin-top: 2px; }
+  .bot-action { margin-left: auto; font-size: 11px; }
+
+  .signal-box {
+    background: #0d0d0d;
+    border: 1px solid #222;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+  .signal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 12px;
+  }
+
+  .signal-label { color: #555; }
+  .signal-val { color: #e0e0e0; }
+  .signal-val.up { color: #00ff88; }
+  .signal-val.down { color: #ff4444; }
+  .signal-val.neutral { color: #ffaa00; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000000cc;
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 20px;
+    width: 90%;
+    max-width: 360px;
+  }
+
+  .modal h3 { font-size: 14px; color: #00ff88; margin-bottom: 16px; }
+
+  .confirm-info {
+    background: #0d0d0d;
+    border: 1px solid #222;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 12px;
+  }
+
+  .confirm-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+  }
+  .confirm-row .label { color: #555; }
+  .confirm-row .value { color: #e0e0e0; }
+
+  .modal-btns { display: flex; gap: 8px; }
+  .modal-btns .btn { margin-bottom: 0; }
+
+  .alert-bar {
+    background: #1a0a00;
+    border: 1px solid #ff440033;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: #ff8844;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .alert-bar.show { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PIXVAULT</h1>
+  <span>v0.2 — cotação ao vivo</span>
+  <div class="status-dot" title="Sistema ativo"></div>
+</header>
+
+<nav>
+  <button class="active" onclick="switchScreen('pix')">💱 PIX ↔ METAMASK</button>
+  <button onclick="switchScreen('okx')">🤖 OKX BOT</button>
+</nav>
+
+<!-- ===== TELA 1: PIX ↔ METAMASK ===== -->
+<div id="screen-pix" class="screen active">
+
+  <div class="alert-bar" id="alert-pix">⚠ Saldo insuficiente na MetaMask para esta operação.</div>
+
+  <!-- Saldos -->
+  <div class="row">
+    <div class="card">
+      <div class="card-title">MetaMask</div>
+      <div class="balance" id="mm-balance">$94.20</div>
+      <div class="balance-sub">USDT</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Corretora BR</div>
+      <div class="balance" style="font-size:22px" id="br-balance">R$ 12,50</div>
+      <div class="balance-sub">em trânsito</div>
+    </div>
+  </div>
+
+  <!-- Corretora selecionada -->
+  <div class="card">
+    <div class="card-title">Corretora ativa</div>
+    <div class="input-group" style="margin-bottom:0">
+      <select id="corretora-select">
+        <option value="binance">Binance BR — taxa 0.10%</option>
+        <option value="foxbit">Foxbit — taxa 0.15%</option>
+        <option value="mb">Mercado Bitcoin — taxa 0.12%</option>
+      </select>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:#555;">
+      USDT/BRL ao vivo: <span id="cotacao-label" style="color:#00ff88;">carregando...</span>
+    </div>
+  </div>
+
+  <!-- Ações -->
+  <div class="section-title">Ações</div>
+
+  <div class="row">
+    <button class="btn green" onclick="openModal('receber')">⬇ Receber Pix</button>
+    <button class="btn red" onclick="openModal('enviar')">⬆ Enviar Pix</button>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Histórico -->
+  <div class="section-title">Histórico</div>
+  <div class="log" id="log-pix">
+    <div class="log-item">
+      <span class="log-time">09:42</span>
+      <span class="log-status">✅</span>
+      <span class="log-text">Pix recebido → USDT enviado MetaMask <span class="tag green">Binance</span></span>
+      <span class="log-val">+$18.10</span>
+    </div>
+    <div class="log-item">
+      <span class="log-time">08:15</span>
+      <span class="log-status">✅</span>
+      <span class="log-text">Pix enviado para 12345@bank <span class="tag blue">Foxbit</span></span>
+      <span class="log-val red">-R$50,00</span>
+    </div>
+    <div class="log-item">
+      <span class="log-time">07:30</span>
+      <span class="log-status">✅</span>
+      <span class="log-text">Pix recebido → USDT enviado MetaMask <span class="tag green">Binance</span></span>
+      <span class="log-val">+$9.05</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TELA 2: OKX BOT ===== -->
+<div id="screen-okx" class="screen">
+
+  <!-- Saldos OKX -->
+  <div class="row">
+    <div class="card">
+      <div class="card-title">OKX — USDT</div>
+      <div class="balance" id="okx-usdt">$18.00</div>
+      <div class="balance-sub">disponível</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Lucro acumulado</div>
+      <div class="balance" style="color:#ffaa00" id="okx-lucro">$0.43</div>
+      <div class="balance-sub">desde início</div>
+    </div>
+  </div>
+
+  <!-- Status do Bot -->
+  <div class="bot-status" id="bot-status-bar">
+    <div class="bot-dot" id="bot-dot"></div>
+    <div class="bot-label">
+      <span id="bot-label-main">BOT PARADO</span>
+      <span id="bot-label-sub">Aguardando ativação</span>
+    </div>
+    <div class="bot-action">
+      <button class="btn green" style="margin:0;padding:6px 14px;width:auto" id="bot-toggle" onclick="toggleBot()">▶ INICIAR</button>
+    </div>
+  </div>
+
+  <!-- Sinal CoinMarketCap -->
+  <div class="section-title">Monitor SOL/USDT — CoinMarketCap</div>
+  <div class="signal-box">
+    <div class="signal-row">
+      <span class="signal-label">Preço atual</span>
+      <span class="signal-val" id="sol-price">$148.32</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Variação 1h</span>
+      <span class="signal-val up" id="sol-1h">+0.82%</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Volume 24h</span>
+      <span class="signal-val" id="sol-vol">$2.1B</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Pressão compradora</span>
+      <span class="signal-val up" id="sol-pressure">ALTA ↑</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Sinal do bot</span>
+      <span class="signal-val neutral" id="bot-signal">AGUARDANDO</span>
+    </div>
+  </div>
+
+  <!-- Transferência MetaMask ↔ OKX -->
+  <div class="section-title">Transferência</div>
+  <div class="row">
+    <button class="btn yellow" onclick="openModal('depositar')">⬇ MetaMask → OKX</button>
+    <button class="btn" onclick="openModal('sacar')">⬆ OKX → MetaMask</button>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Histórico bot -->
+  <div class="section-title">Operações do bot</div>
+  <div class="log" id="log-okx">
+    <div class="log-item">
+      <span class="log-time">—</span>
+      <span class="log-status">💤</span>
+      <span class="log-text" style="color:#444">Bot ainda não operou nesta sessão.</span>
+      <span class="log-val" style="color:#444">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL CONFIRMAÇÃO ===== -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3 id="modal-title">Confirmar operação</h3>
+
+    <!-- Campos dinâmicos -->
+    <div id="modal-fields"></div>
+
+    <div class="confirm-info" id="modal-info"></div>
+
+    <div class="modal-btns">
+      <button class="btn" onclick="closeModal()" style="flex:1">✕ Cancelar</button>
+      <button class="btn green" onclick="confirmarOperacao()" style="flex:1" id="btn-confirmar">✓ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== ESTADO MOCKADO =====
+  const state = {
+    mm: 94.20,       // USDT na MetaMask
+    brBRL: 12.50,    // BRL na corretora BR
+    okxUSDT: 18.00,  // USDT na OKX
+    okxLucro: 0.43,
+    botRodando: false,
+    botPosicao: null, // { preco, usdt }
+    solPrice: 148.32,
+    usdtBRL: 5.52,   // cotação — atualizada via CoinGecko
+    modalTipo: null,
+  };
+
+  // ===== COTAÇÃO REAL — COINGECKO =====
+  async function atualizarCotacao() {
+    const el = document.getElementById('cotacao-label');
+    try {
+      const res = await fetch(
+        'https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=brl'
+      );
+      const data = await res.json();
+      const nova = data?.tether?.brl;
+      if (nova && nova > 0) {
+        state.usdtBRL = nova;
+        if (el) el.textContent = 'R$ ' + nova.toFixed(2);
+      }
+    } catch (e) {
+      if (el) el.textContent = 'erro';
+    }
+  }
+
+  // Atualiza ao carregar e a cada 60s
+  atualizarCotacao();
+  setInterval(atualizarCotacao, 60000);
+
+  // ===== NAVEGAÇÃO =====
+  function switchScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // ===== ATUALIZA UI =====
+  function updateUI() {
+    document.getElementById('mm-balance').textContent = '$' + state.mm.toFixed(2);
+    document.getElementById('br-balance').textContent = 'R$ ' + state.brBRL.toFixed(2).replace('.', ',');
+    document.getElementById('okx-usdt').textContent = '$' + state.okxUSDT.toFixed(2);
+    document.getElementById('okx-lucro').textContent = '$' + state.okxLucro.toFixed(2);
+    document.getElementById('sol-price').textContent = '$' + state.solPrice.toFixed(2);
+  }
+
+  // ===== MODAL =====
+  function openModal(tipo) {
+    state.modalTipo = tipo;
+    const overlay = document.getElementById('modal-overlay');
+    const title = document.getElementById('modal-title');
+    const fields = document.getElementById('modal-fields');
+    const info = document.getElementById('modal-info');
+
+    overlay.classList.add('open');
+
+    if (tipo === 'receber') {
+      title.textContent = '⬇ Receber Pix → MetaMask';
+      fields.innerHTML = `
+        <div class="input-group"><label>Valor recebido (R$)</label><input type="number" id="f-valor" placeholder="100.00" min="1"></div>
+        <div class="input-group"><label>Chave Pix origem</label><input type="text" id="f-chave" placeholder="CPF, email, telefone..."></div>
+      `;
+      info.innerHTML = buildInfo([
+        ['Fluxo', 'Pix → Corretora BR → USDT → MetaMask'],
+        ['Corretora', document.getElementById('corretora-select').selectedOptions[0].text.split('—')[0].trim()],
+        ['Taxa aprox.', '0.10%'],
+        ['Você recebe', '≈ $ — (preencha o valor)'],
+      ]);
+    }
+
+    else if (tipo === 'enviar') {
+      title.textContent = '⬆ MetaMask → Enviar Pix';
+      fields.innerHTML = `
+        <div class="input-group"><label>Chave Pix destino</label><input type="text" id="f-destino" placeholder="CPF, email, aleatória..."></div>
+        <div class="input-group"><label>Valor a enviar (R$)</label><input type="number" id="f-valor" placeholder="50.00" min="1"></div>
+      `;
+      info.innerHTML = buildInfo([
+        ['Fluxo', 'MetaMask → USDT → Corretora BR → Pix'],
+        ['Saldo MetaMask', '$' + state.mm.toFixed(2) + ' USDT'],
+        ['Taxa aprox.', '0.10%'],
+        ['Aviso', 'Confirme antes de executar'],
+      ]);
+    }
+
+    else if (tipo === 'depositar') {
+      title.textContent = '⬇ MetaMask → OKX';
+      fields.innerHTML = `
+        <div class="input-group"><label>Valor USDT a enviar</label><input type="number" id="f-valor" placeholder="18.00" max="${state.mm}" min="1"></div>
+      `;
+      info.innerHTML = buildInfo([
+        ['Fluxo', 'MetaMask → OKX (bot opera)'],
+        ['Saldo MetaMask', '$' + state.mm.toFixed(2)],
+        ['Saldo OKX atual', '$' + state.okxUSDT.toFixed(2)],
+      ]);
+    }
+
+    else if (tipo === 'sacar') {
+      title.textContent = '⬆ OKX → MetaMask';
+      fields.innerHTML = `
+        <div class="input-group"><label>Valor USDT a sacar</label><input type="number" id="f-valor" placeholder="${state.okxUSDT.toFixed(2)}" max="${state.okxUSDT}" min="1"></div>
+      `;
+      info.innerHTML = buildInfo([
+        ['Fluxo', 'OKX → MetaMask'],
+        ['Saldo OKX', '$' + state.okxUSDT.toFixed(2)],
+        ['Lucro incluído', '$' + state.okxLucro.toFixed(2)],
+      ]);
+    }
+  }
+
+  function buildInfo(rows) {
+    return rows.map(([l, v]) =>
+      `<div class="confirm-row"><span class="label">${l}</span><span class="value">${v}</span></div>`
+    ).join('');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    state.modalTipo = null;
+  }
+
+  function confirmarOperacao() {
+    const tipo = state.modalTipo;
+    const valorEl = document.getElementById('f-valor');
+    const valor = parseFloat(valorEl ? valorEl.value : 0) || 0;
+
+    if (tipo === 'receber') {
+      if (valor <= 0) { alert('Informe o valor recebido.'); return; }
+      const usdt = valor / state.usdtBRL * 0.999;
+      state.mm += usdt;
+      state.brBRL = 0;
+      addLog('log-pix', `Pix R$${valor.toFixed(2)} recebido → MetaMask`, `+$${usdt.toFixed(2)}`, false);
+    }
+
+    else if (tipo === 'enviar') {
+      if (valor <= 0) { alert('Informe o valor.'); return; }
+      const usdt = valor / state.usdtBRL;
+      if (usdt > state.mm) { closeModal(); showAlert('alert-pix'); return; }
+      state.mm -= usdt;
+      addLog('log-pix', `Pix R$${valor.toFixed(2)} enviado`, `-R$${valor.toFixed(2)}`, true);
+    }
+
+    else if (tipo === 'depositar') {
+      if (valor <= 0 || valor > state.mm) { alert('Valor inválido.'); return; }
+      state.mm -= valor;
+      state.okxUSDT += valor;
+      addLog('log-okx', `Depósito MetaMask → OKX`, `+$${valor.toFixed(2)}`, false);
+    }
+
+    else if (tipo === 'sacar') {
+      if (valor <= 0 || valor > state.okxUSDT) { alert('Valor inválido.'); return; }
+      state.okxUSDT -= valor;
+      state.mm += valor;
+      addLog('log-okx', `Saque OKX → MetaMask`, `+$${valor.toFixed(2)}`, false);
+    }
+
+    updateUI();
+    closeModal();
+  }
+
+  // ===== LOG =====
+  function addLog(logId, texto, valor, isRed) {
+    const log = document.getElementById(logId);
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+    const item = document.createElement('div');
+    item.className = 'log-item';
+    item.innerHTML = `
+      <span class="log-time">${time}</span>
+      <span class="log-status">✅</span>
+      <span class="log-text">${texto}</span>
+      <span class="log-val ${isRed ? 'red' : ''}">${valor}</span>
+    `;
+    log.insertBefore(item, log.firstChild);
+    // remove placeholder se existir
+    const placeholder = log.querySelector('.log-item span.log-status');
+    if (log.children.length > 1 && log.children[log.children.length-1].querySelector('.log-status')?.textContent === '💤') {
+      log.removeChild(log.lastChild);
+    }
+  }
+
+  function showAlert(id) {
+    const el = document.getElementById(id);
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 4000);
+  }
+
+  // ===== BOT OKX =====
+  let botInterval = null;
+
+  function toggleBot() {
+    state.botRodando = !state.botRodando;
+    const dot = document.getElementById('bot-dot');
+    const labelMain = document.getElementById('bot-label-main');
+    const labelSub = document.getElementById('bot-label-sub');
+    const toggle = document.getElementById('bot-toggle');
+
+    if (state.botRodando) {
+      dot.classList.add('on');
+      labelMain.textContent = 'BOT ATIVO';
+      labelSub.textContent = 'Monitorando SOL/USDT...';
+      toggle.textContent = '⏹ PARAR';
+      toggle.className = 'btn red';
+      toggle.style = 'margin:0;padding:6px 14px;width:auto';
+      botInterval = setInterval(simularBot, 4000);
+      document.getElementById('bot-signal').textContent = 'MONITORANDO';
+      document.getElementById('bot-signal').className = 'signal-val neutral';
+    } else {
+      dot.classList.remove('on');
+      labelMain.textContent = 'BOT PARADO';
+      labelSub.textContent = 'Aguardando ativação';
+      toggle.textContent = '▶ INICIAR';
+      toggle.className = 'btn green';
+      toggle.style = 'margin:0;padding:6px 14px;width:auto';
+      clearInterval(botInterval);
+      document.getElementById('bot-signal').textContent = 'PARADO';
+      document.getElementById('bot-signal').className = 'signal-val neutral';
+      state.botPosicao = null;
+    }
+  }
+
+  function simularBot() {
+    if (!state.botRodando || state.okxUSDT <= 0) return;
+
+    // Simula variação de preço do SOL
+    const var1h = (Math.random() * 2 - 0.8).toFixed(2);
+    const pressao = parseFloat(var1h) > 0.3 ? 'ALTA ↑' : parseFloat(var1h) < -0.3 ? 'BAIXA ↓' : 'NEUTRA →';
+    const pressaoClass = pressao.includes('ALTA') ? 'up' : pressao.includes('BAIXA') ? 'down' : 'neutral';
+
+    state.solPrice = parseFloat((state.solPrice * (1 + parseFloat(var1h)/100)).toFixed(2));
+    document.getElementById('sol-price').textContent = '$' + state.solPrice.toFixed(2);
+    document.getElementById('sol-1h').textContent = (parseFloat(var1h) >= 0 ? '+' : '') + var1h + '%';
+    document.getElementById('sol-1h').className = 'signal-val ' + (parseFloat(var1h) >= 0 ? 'up' : 'down');
+    document.getElementById('sol-pressure').textContent = pressao;
+    document.getElementById('sol-pressure').className = 'signal-val ' + pressaoClass;
+
+    const sinalEl = document.getElementById('bot-signal');
+
+    // Lógica: compra quando confirmação de alta real (>0.5%), vende na queda
+    if (!state.botPosicao && parseFloat(var1h) > 0.5 && state.okxUSDT > 1) {
+      // COMPRA confirmada
+      const usdt = state.okxUSDT;
+      state.botPosicao = { preco: state.solPrice, usdt };
+      sinalEl.textContent = 'COMPRADO ✓';
+      sinalEl.className = 'signal-val up';
+      document.getElementById('bot-label-sub').textContent = `Comprou SOL a $${state.solPrice}`;
+      addLog('log-okx', `BOT comprou SOL a $${state.solPrice} — alta confirmada ${var1h}%`, `-$${usdt.toFixed(2)} USDT`, true);
+    }
+
+    else if (state.botPosicao && parseFloat(var1h) < -0.2) {
+      // VENDE na queda
+      const lucro = state.botPosicao.usdt * (state.solPrice / state.botPosicao.preco - 1);
+      const total = state.botPosicao.usdt + lucro;
+      state.okxUSDT = parseFloat(total.toFixed(2));
+      state.okxLucro = parseFloat((state.okxLucro + lucro).toFixed(4));
+      addLog('log-okx',
+        `BOT vendeu SOL a $${state.solPrice} — lucro: $${lucro.toFixed(4)}`,
+        `+$${total.toFixed(2)} USDT`, false
+      );
+      state.botPosicao = null;
+      sinalEl.textContent = 'MONITORANDO';
+      sinalEl.className = 'signal-val neutral';
+      document.getElementById('bot-label-sub').textContent = `Lucro: $${state.okxLucro.toFixed(4)}`;
+      updateUI();
+    }
+
+    else {
+      sinalEl.textContent = state.botPosicao ? 'COMPRADO ✓' : 'AGUARDANDO';
+      sinalEl.className = state.botPosicao ? 'signal-val up' : 'signal-val neutral';
+    }
+  }
+
+  // Init
+  updateUI();
+</script>
+</body>
+</html>
